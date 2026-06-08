@@ -37,31 +37,42 @@ PredictiveMaintenance/
 Clone the repository:
 
 Bash
-git clone [https://github.com/YSuhaybArthus/predictive-maintenance-os.git](https://github.com/SuhaybArthusS/predictive-maintenance-os.git)
+```git clone [https://github.com/YSuhaybArthus/predictive-maintenance-os.git](https://github.com/SuhaybArthusS/predictive-maintenance-os.git)
 cd predictive-maintenance-os
 Create a virtual environment (Recommended):
+```
 
 Bash
+```
 python -m venv .venv
+```
 
 # Windows:
+```
 .venv\Scripts\activate
-
+```
 # Mac/Linux:
+```
 source .venv/bin/activate
 Install required dependencies:
-
+```
 Bash
+```
 pip install pandas numpy scikit-learn flask joblib
+```
 ⚙️ Usage Guide
 Step 1: Train the Model Before running the server, you must train the AI and generate the model.pkl file. This script handles data scaling and feature engineering automatically.
 
 Bash
+```
 python train_model.py
+```
 Step 2: Start the Web Server Launch the Flask application to serve the model.
 
 Bash
+```
 python app.py
+```
 Step 3: Access the Dashboard Open your web browser and navigate to:
 
 http://127.0.0.1:5000/
