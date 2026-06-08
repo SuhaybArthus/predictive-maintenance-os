@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Predictive Maintenance OS</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CSS Variables for Easy Theme Switching */
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --text-main: #f5f5f5;
+            --text-muted: #888888;
+            --border: #333333;
+            --gauge-bg: #333333;
+            --bar-bg: #333333;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f4f7f6;
+            --panel-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #555555;
+            --border: #dddddd;
+            --gauge-bg: #e0e0e0;
+            --bar-bg: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 40px;
+            display: flex; flex-direction: column; align-items: center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Header Layout */
+        header { 
+            width: 100%; max-width: 1050px; margin-bottom: 30px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header-text h1 { margin: 0; font-size: 24px; letter-spacing: 0.5px; }
+        .header-text .ver { color: var(--text-muted); font-size: 12px; margin-top: 5px; }
+        
+        .theme-btn {
+            background: var(--panel-bg); color: var(--text-main);
+            border: 1px solid var(--border); padding: 8px 16px;
+            border-radius: 20px; cursor: pointer; font-weight: bold;
+            transition: 0.3s;
+        }
+        .theme-btn:hover { border-color: var(--text-muted); }
+
+        /* Two-Column Grid */
+        .dashboard-grid {
+            display: grid; grid-template-columns: 1.2fr 1fr; gap: 30px;
+            width: 100%; max-width: 1050px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        h2 { font-size: 16px; text-transform: uppercase; color: var(--text-muted); margin-top: 0; margin-bottom: 25px; letter-spacing: 1px;}
+        h3 { font-size: 14px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;}
+
+        /* Sliders */
+        .control-group { display: flex; align-items: center; margin-bottom: 22px; }
+        .label-box { width: 160px; font-size: 13px; font-weight: 600; }
+        .slider-wrapper { flex: 1; margin: 0 15px; }
+        .val-display { width: 60px; text-align: right; font-family: monospace; font-size: 16px; font-weight: bold; }
+
+        input[type="range"] { 
+            -webkit-appearance: none; appearance: none; width: 100%; height: 8px; 
+            border-radius: 4px; outline: none; cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+            border-radius: 50%; background: #fff; box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            border: 1px solid #ccc;
+        }
+
+        /* Gradient Colors */
+        #air_temp { background: linear-gradient(to right, #4CAF50 40%, #ffa500 70%, #ff4c4c 90%); }
+        #process_temp { background: linear-gradient(to right, #4CAF50 40%, #ffa500 70%, #ff4c4c 90%); }
+        #rot_speed { background: linear-gradient(to right, #ffa500 0%, #4CAF50 30% 60%, #ff4c4c 85%); }
+        #torque { background: linear-gradient(to right, #4CAF50 50%, #ffa500 75%, #ff4c4c 95%); }
+        #tool_wear { background: linear-gradient(to right, #4CAF50 60%, #ffa500 80%, #ff4c4c 90%); }
+
+        .btn-reset {
+            width: 100%; padding: 12px; margin-top: 15px; background: transparent; color: var(--text-main);
+            border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .btn-reset:hover { background-color: var(--border); }
+
+        /* Output Panel Components */
+        .gauge-area { 
+    height: 180px; 
+    position: relative; 
+    margin-bottom: 20px; 
+    display: flex; 
+    justify-content: center; /* Centers the canvas horizontally */
+    align-items: flex-end;   /* Grounds the semi-circle to the bottom */
+}
+
+/* Ensure the canvas doesn't overflow */
+canvas#gauge {
+    max-width: 100%;
+}
+        #status-text { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 25px; }
+
+        .action-card {
+            background: rgba(0, 0, 0, 0.05); border-left: 4px solid var(--text-muted); padding: 15px;
+            border-radius: 4px; font-size: 14px; line-height: 1.6; margin-bottom: 30px;
+            border: 1px solid var(--border); border-left-width: 4px;
+        }
+        [data-theme="dark"] .action-card { background: #252525; }
+
+        /* Confidence Factors */
+        .impact-item { margin-bottom: 12px; }
+        .impact-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; font-weight: 500;}
+        .bar-bg { background: var(--bar-bg); height: 6px; border-radius: 3px; }
+        .bar-fill { background: #007acc; height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+    </style>
+</head>
+<body data-theme="dark">
+
+<header>
+    <div class="header-text">
+        <h1>PROGNOSTICS & HEALTH MANAGEMENT</h1>
+        <div class="ver">ASSET ID: UNIT-X72 • AI MODEL: RANDOM FOREST ENSEMBLE</div>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()">☀️</button>
+</header>
+
+<div class="dashboard-grid">
+    <div class="panel">
+        <h2>Live Telemetry Simulation</h2>
+        
+        <div class="control-group">
+            <div class="label-box">🌡️ Air Temp (K)</div>
+            <div class="slider-wrapper"><input type="range" id="air_temp" min="295" max="305" step="0.1" value="300" oninput="update()"></div>
+            <div class="val-display" id="val_air">300.0</div>
+        </div>
+
+        <div class="control-group">
+            <div class="label-box">🔥 Process Temp (K)</div>
+            <div class="slider-wrapper"><input type="range" id="process_temp" min="305" max="318" step="0.1" value="310" oninput="update()"></div>
+            <div class="val-display" id="val_process">310.0</div>
+        </div>
+
+        <div class="control-group">
+            <div class="label-box">🔄 Spindle Speed (rpm)</div>
+            <div class="slider-wrapper"><input type="range" id="rot_speed" min="1200" max="2800" step="1" value="1500" oninput="update()"></div>
+            <div class="val-display" id="val_speed">1500</div>
+        </div>
+
+        <div class="control-group">
+            <div class="label-box">
+                ⚙️ Torque (Nm) 
+                <br><span id="torque-warn" style="color: #ff4c4c; font-size: 11px; display: none;">⚠️ Max 60 (High Speed)</span>
+            </div>
+            <div class="slider-wrapper"><input type="range" id="torque" min="20" max="75" step="0.1" value="40" oninput="update()"></div>
+            <div class="val-display" id="val_torque">40.0</div>
+        </div>
+
+        <div class="control-group">
+            <div class="label-box">⏱️ Tool Wear (min)</div>
+            <div class="slider-wrapper"><input type="range" id="tool_wear" min="0" max="250" step="1" value="50" oninput="update()"></div>
+            <div class="val-display" id="val_wear">50</div>
+        </div>
+
+        <button class="btn-reset" onclick="reset()">⟲ Reset System Baseline</button>
+    </div>
+
+    <div class="panel">
+        <h2>Diagnostics Engine</h2>
+        
+        <div class="gauge-area"><canvas id="gauge"></canvas></div>
+        <div id="status-text">--</div>
+
+        <h3>Prescriptive Action</h3>
+        <div class="action-card" id="action-text">Adjust sliders to begin analysis...</div>
+
+        <h3>Confidence Factors</h3>
+        <div id="impacts">
+            </div>
+    </div>
+</div>
+
+<script>
+    // 1. Theme Toggle Logic
+    let currentTheme = 'dark';
+    function toggleTheme() {
+        const body = document.body;
+        const btn = document.querySelector('.theme-btn');
+        if (currentTheme === 'dark') {
+            body.setAttribute('data-theme', 'light');
+            btn.innerText = '🌙';
+            currentTheme = 'light';
+        } else {
+            body.setAttribute('data-theme', 'dark');
+            btn.innerText = '☀️';
+            currentTheme = 'dark';
+        }
+        update(); // Re-trigger update to sync gauge background colors
+    }
+
+    // 2. Setup Gauge Chart
+    const ctx = document.getElementById('gauge').getContext('2d');
+    let gauge = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{ data: [0, 100], backgroundColor: ['#4CAF50', '#333'], borderWidth: 0 }]
+        },
+        options: {
+            rotation: -90, circumference: 180, cutout: '85%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            animation: { duration: 400 } // Smoother gauge animations
+        }
+    });
+
+    // 3. Reset Logic
+    function reset() {
+        document.getElementById('air_temp').value = 300;
+        document.getElementById('process_temp').value = 310;
+        document.getElementById('rot_speed').value = 1500;
+        document.getElementById('torque').value = 40;
+        document.getElementById('tool_wear').value = 50;
+        update();
+    }
+
+    // 4. Physics Guardrail (Frontend)
+    // 4. Physics Guardrail (Frontend UI Limit)
+    function enforcePhysics() {
+        const speed = parseFloat(document.getElementById('rot_speed').value);
+        const torqueSlider = document.getElementById('torque');
+        const warnText = document.getElementById('torque-warn');
+        
+        // If speed goes above 2500, apply the UI limit
+        if (speed > 2500) {
+            torqueSlider.max = 60; // Physically lock the slider
+            warnText.style.display = "inline"; // Show the warning text
+            
+            // If the user already dragged it past 60, snap it back down
+            if (parseFloat(torqueSlider.value) > 60) {
+                torqueSlider.value = 60; 
+            }
+        } else {
+            // Restore normal physics limits
+            torqueSlider.max = 75; 
+            warnText.style.display = "none"; // Hide the warning
+        }
+    }
+
+    // 5. Main Update Function
+    async function update() {
+        enforcePhysics();
+
+        const payload = {
+            air_temp: document.getElementById('air_temp').value,
+            process_temp: document.getElementById('process_temp').value,
+            rot_speed: document.getElementById('rot_speed').value,
+            torque: document.getElementById('torque').value,
+            tool_wear: document.getElementById('tool_wear').value
+        };
+
+        document.getElementById('val_air').innerText = parseFloat(payload.air_temp).toFixed(1);
+        document.getElementById('val_process').innerText = parseFloat(payload.process_temp).toFixed(1);
+        document.getElementById('val_speed').innerText = payload.rot_speed;
+        document.getElementById('val_torque').innerText = parseFloat(payload.torque).toFixed(1);
+        document.getElementById('val_wear').innerText = payload.tool_wear;
+
+        const resp = await fetch('/predict_api', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const res = await resp.json();
+
+        // Update Text and Borders
+        document.getElementById('status-text').innerText = res.status;
+        document.getElementById('status-text').style.color = res.color;
+        document.getElementById('action-text').innerText = res.action;
+        document.getElementById('action-text').style.borderLeftColor = res.color;
+
+        // Update Gauge (Syncs unused portion color with theme)
+        const emptyColor = currentTheme === 'dark' ? '#333333' : '#e0e0e0';
+        gauge.data.datasets[0].data = [res.probability, 100 - res.probability];
+        gauge.data.datasets[0].backgroundColor = [res.color, emptyColor];
+        gauge.update();
+
+        // Render Confidence Factors
+        const impactBox = document.getElementById('impacts');
+        impactBox.innerHTML = '';
+        if (res.impacts) {
+            res.impacts.forEach(i => {
+                impactBox.innerHTML += `
+                    <div class="impact-item">
+                        <div class="impact-label"><span>${i.name}</span><span>${i.value}%</span></div>
+                        <div class="bar-bg"><div class="bar-fill" style="width: ${i.value}%; background-color: ${res.color}"></div></div>
+                    </div>`;
+            });
+        }
+    }
+
+    window.onload = update;
+</script>
+
+</body>
+</html>
