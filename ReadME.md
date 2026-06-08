@@ -30,6 +30,7 @@ PredictiveMaintenance/
 │
 └── templates/
     └── index.html         # Frontend interactive dashboard UI
+```
 
 
 🚀 Installation & Setup
